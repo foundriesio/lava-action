@@ -1,0 +1,20 @@
+name: 'Submit LAVA job'
+description: 'Submit LAVA test job'
+inputs:
+  job_definition:
+    description: 'Test job definition to submit'
+    required: true
+  lava_token:
+    description: 'Authentication token for job submission'
+    required: true
+  lava_url:
+    description: 'URL of LAVA instance'
+    required: true
+  wait_for_job:
+    description: 'Wait for job completion and stream logs'
+  fail_action_on_failure:
+    description: 'Marks action failed in any test result is "fail". Requires wait_for_job set to "true"'
+
+runs:
+  using: 'node20'
+  main: 'submit.js'
