@@ -64,21 +64,26 @@ async function fetchAndParse(jobId, logStart, host, fail_action_on_failure) {
         console.log("Job state: %s", state);
     } else {
         if (jobLogStatusCode == 200) {
-            yaml_log = YAML.parse(jobLog);
+            try {
+                yaml_log = YAML.parse(jobLog);
 
-            for (const line of yaml_log) {
-                const { lvl, msg } = line;
-                const { case: msgCase, definition, result } = msg;
+                for (const line of yaml_log) {
+                    const { lvl, msg } = line;
+                    const { case: msgCase, definition, result } = msg;
 
-                const textFormat = BackgroundColor[lvl];
-                if (lvl === "results") {
-                    console.log(`${textFormat}case: %s | definition: %s | result: %s ${ColorReset}`, msgCase, definition, result );
-                    const testFullName = definition + '/' + msgCase
-                    testResults.set(testFullName, result);
-                } else {
-                    console.log(`${textFormat}${msg}${ColorReset}`);
+                    const textFormat = BackgroundColor[lvl];
+                    if (lvl === "results") {
+                        console.log(`${textFormat}case: %s | definition: %s | result: %s ${ColorReset}`, msgCase, definition, result );
+                        const testFullName = definition + '/' + msgCase
+                        testResults.set(testFullName, result);
+                    } else {
+                        console.log(`${textFormat}${msg}${ColorReset}`);
+                    }
+                    logStart += 1;
                 }
-                logStart += 1;
+            }
+            catch (error) {
+                console.log(error.message)
             }
         }
     }
