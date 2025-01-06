@@ -50,12 +50,17 @@ async function fetchAndParse(jobId, logStart, host, fail_action_on_failure) {
     const { body: jobStatusBody, statusCode: jobStatusCode } = jobStatusResponse;
     const { body: jobLogBody, statusCode: jobLogStatusCode } = jobLogResponse;
 
+    if (jobStatusCode >= 400) {
+        console.log("Error retrieving job status");
+        return setTimeout(() => fetchAndParse(jobId, logStart, host, fail_action_on_failure), 5000);
+    }
+    if (jobLogStatusCode >= 400) {
+        console.log("Error retrieving job logs");
+        return setTimeout(() => fetchAndParse(jobId, logStart, host, fail_action_on_failure), 5000);
+    }
+
     const jobStatus = await jobStatusBody.json();
     const jobLog = await jobLogBody.text();
-
-    if (jobStatusCode >= 400){
-        throw new Error('Error retrieving lava job');
-    }
 
     const { state } = jobStatus;
     const { health } = jobStatus;

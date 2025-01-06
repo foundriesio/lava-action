@@ -26,10 +26,13 @@ Marks action failed in any test result is `fail`. Requires `wait_for_job` set to
 
 ## Example usage
 
-    uses: foundries/lava-action@v1
+    uses: foundries/lava-action@v3
+    timeout-minutes: 10
     with:
       lava_token: '<auth token>'
       lava_url: 'example.lava.instance'
       job_definition: 'lavajob.yaml'
       wait_for_job: 'true'
       fail_action_on_failure: 'true'
+
+Note! It is advised to set `timeout-minutes` to avoid the job runninng indefinitely.
