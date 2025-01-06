@@ -47,7 +47,7 @@ async function fetchAndParse(jobId, logStart, host, fail_action_on_failure) {
         undici.request(new URL(jobLogPath, host))
     ]);
 
-    const { body: jobStatusBody, statucCode: jobStatusCode } = jobStatusResponse;
+    const { body: jobStatusBody, statusCode: jobStatusCode } = jobStatusResponse;
     const { body: jobLogBody, statusCode: jobLogStatusCode } = jobLogResponse;
 
     const jobStatus = await jobStatusBody.json();
