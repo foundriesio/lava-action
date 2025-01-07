@@ -24,6 +24,11 @@ Wait for job completion and stream logs'
 
 Marks action failed in any test result is `fail`. Requires `wait_for_job` set to `true`
 
+## 'save_result_as_artifact'
+
+Saves JUNIT file with test results. The file name is `test-resutls-<lava job ID>.xml`.
+The file is saved to the top directory of the workflow artifacts.
+
 ## Example usage
 
     uses: foundries/lava-action@v3
