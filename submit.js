@@ -32,7 +32,7 @@ async function printResults(fail_action) {
             failedTest = key;
         }
     }
-    if ( hasFailures && fail_action == "true" ) {
+    if ( hasFailures && fail_action ) {
         console.log("Action failed because of test failure");
         core.setFailed(failedTest);
     }
@@ -115,11 +115,13 @@ async function main() {
     let fail_action_on_failure;
 
     try {
-        job_definition_path = core.getInput("job_definition");
-        lava_token = core.getInput("lava_token");
-        lava_url = core.getInput("lava_url");
-        wait_for_job = core.getInput("wait_for_job");
-        fail_action_on_failure = core.getInput("fail_action_on_failure");
+        job_definition_path = core.getInput("job_definition", {required: true});
+        lava_token = core.getInput("lava_token", {required: true});
+        lava_url = core.getInput("lava_url", {required: true});
+        wait_for_job = core.getBooleanInput("wait_for_job", {required: true});
+        fail_action_on_failure = core.getBooleanInput("fail_action_on_failure", {required: true});
+        console.log("Wait for job: " + wait_for_job);
+        console.log("Fail on failure: " + fail_action_on_failure);
     } catch (ex) {
         console.log("Error reading input variables");
         core.setFailed(err.message);
@@ -176,7 +178,7 @@ async function main() {
 
     console.log("Job ID: ", jobId);
 
-    if ( wait_for_job == "true" ) {
+    if ( wait_for_job ) {
         return await fetchAndParse(jobId, 0, host, fail_action_on_failure);
     }
     return true
