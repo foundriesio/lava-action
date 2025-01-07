@@ -2,9 +2,9 @@ const fs = require("fs");
 
 const core = require('@actions/core');
 const github = require('@actions/github');
+const {DefaultArtifactClient} = require('@actions/artifact')
 const undici = require('undici');
 const YAML = require('yaml')
-
 const ColorReset = "\x1b[0m";
 
 const BackgroundColor = {
@@ -38,7 +38,49 @@ async function printResults(fail_action) {
     }
 }
 
-async function fetchAndParse(jobId, logStart, host, fail_action_on_failure) {
+async function saveArtifacts(jobId, host, save_result_as_artifact) {
+    console.log("Saving artifacts: " + save_result_as_artifact);
+    if (save_result_as_artifact){
+        const artifact = new DefaultArtifactClient()
+        // Save results as artifact
+        const jobResultsPath = "/api/v0.2/jobs/" + jobId + "/junit/";
+        const [jobResults] = await Promise.all([
+            undici.request(new URL(jobResultsPath, host)),
+        ]);
+
+        const { body: jobResultsBody, statusCode: jobResultsStatusCode } = jobResults;
+
+        if (jobResultsStatusCode >= 400) {
+            console.log("Error retrieving job results");
+        }
+        const fileName = "./test-results-" + jobId + ".xml"
+        console.log("Writing to: " + fileName);
+        const resultsBody = await jobResultsBody.text();
+        await fs.writeFile(fileName, resultsBody, err => {
+            if (err) {
+                console.error(err);
+            }});
+        await fs.stat(fileName, (error, stats) => {
+          if (error) {
+            console.log(error);
+          }
+          else {
+            console.log("Stats object for: " + fileName);
+            console.log(stats);
+          }
+        });
+
+        const {id, size} = await artifact.uploadArtifact(
+            "test-results-" + jobId,
+            [fileName],
+            "./"
+        )
+
+        console.log(`Created artifact with id: ${id}, bytes: ${size}, name: ${fileName}`)
+    }
+}
+
+async function fetchAndParse(jobId, logStart, host, fail_action_on_failure, save_result_as_artifact) {
     const jobStatusPath = "/api/v0.2/jobs/" + jobId + "/";
     const jobLogPath = "/api/v0.2/jobs/" + jobId + "/logs/?start=" + logStart;
 
@@ -52,11 +94,10 @@ async function fetchAndParse(jobId, logStart, host, fail_action_on_failure) {
 
     if (jobStatusCode >= 400) {
         console.log("Error retrieving job status");
-        return setTimeout(() => fetchAndParse(jobId, logStart, host, fail_action_on_failure), 5000);
+        return setTimeout(() => fetchAndParse(jobId, logStart, host, fail_action_on_failure, save_result_as_artifact), 5000);
     }
     if (jobLogStatusCode >= 400) {
         console.log("Error retrieving job logs");
-        return setTimeout(() => fetchAndParse(jobId, logStart, host, fail_action_on_failure), 5000);
     }
 
     const jobStatus = await jobStatusBody.json();
@@ -94,6 +135,7 @@ async function fetchAndParse(jobId, logStart, host, fail_action_on_failure) {
     }
 
     if (state === "Finished") {
+        saveArtifacts(jobId, host, save_result_as_artifact);
         printResults(fail_action_on_failure);
         if (health === "Incomplete" || health === "Canceled") {
             console.log("Action failed because of job failure");
@@ -102,7 +144,7 @@ async function fetchAndParse(jobId, logStart, host, fail_action_on_failure) {
         return testResults;
     }
 
-    return setTimeout(() => fetchAndParse(jobId, logStart, host, fail_action_on_failure), 5000);
+    return setTimeout(() => fetchAndParse(jobId, logStart, host, fail_action_on_failure, save_result_as_artifact), 5000);
 }
 
 
@@ -113,6 +155,7 @@ async function main() {
     let lava_url;
     let wait_for_job;
     let fail_action_on_failure;
+    let save_result_as_artifact;
 
     try {
         job_definition_path = core.getInput("job_definition", {required: true});
@@ -120,8 +163,10 @@ async function main() {
         lava_url = core.getInput("lava_url", {required: true});
         wait_for_job = core.getBooleanInput("wait_for_job", {required: true});
         fail_action_on_failure = core.getBooleanInput("fail_action_on_failure", {required: true});
+        save_result_as_artifact  = core.getBooleanInput("save_result_as_artifact", {required: true});
         console.log("Wait for job: " + wait_for_job);
         console.log("Fail on failure: " + fail_action_on_failure);
+        console.log("Save artifact: " + save_result_as_artifact);
     } catch (ex) {
         console.log("Error reading input variables");
         core.setFailed(err.message);
@@ -179,7 +224,7 @@ async function main() {
     console.log("Job ID: ", jobId);
 
     if ( wait_for_job ) {
-        return await fetchAndParse(jobId, 0, host, fail_action_on_failure);
+        return await fetchAndParse(jobId, 0, host, fail_action_on_failure, save_result_as_artifact);
     }
     return true
 }

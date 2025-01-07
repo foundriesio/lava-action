@@ -16,6 +16,9 @@ inputs:
   fail_action_on_failure:
     description: 'Marks action failed in any test result is "fail". Requires wait_for_job set to "true"'
     default: true
+  save_result_as_artifact:
+    description: 'Save test results as JUNIT XML file'
+    default: false
 
 runs:
   using: 'node20'
