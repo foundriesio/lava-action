@@ -169,7 +169,7 @@ async function main() {
         console.log("Save artifact: " + save_result_as_artifact);
     } catch (ex) {
         console.log("Error reading input variables");
-        core.setFailed(err.message);
+        core.setFailed(ex.message);
 
         return;
     }
