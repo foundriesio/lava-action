@@ -156,6 +156,7 @@ async function main() {
     let wait_for_job;
     let fail_action_on_failure;
     let save_result_as_artifact;
+    let save_job_details;
 
     try {
         job_definition_path = core.getInput("job_definition", {required: true});
@@ -164,9 +165,11 @@ async function main() {
         wait_for_job = core.getBooleanInput("wait_for_job", {required: true});
         fail_action_on_failure = core.getBooleanInput("fail_action_on_failure", {required: true});
         save_result_as_artifact  = core.getBooleanInput("save_result_as_artifact", {required: true});
+        save_job_details  = core.getBooleanInput("save_job_details", {required: true});
         console.log("Wait for job: " + wait_for_job);
         console.log("Fail on failure: " + fail_action_on_failure);
         console.log("Save artifact: " + save_result_as_artifact);
+        console.log("Save job details: " + save_job_details);
     } catch (ex) {
         console.log("Error reading input variables");
         core.setFailed(ex.message);
@@ -222,6 +225,45 @@ async function main() {
     const jobId = lavaJob.job_ids[0];
 
     console.log("Job ID: ", jobId);
+    console.log("Job URL: ", host + "/scheduler/job/" + jobId);
+    if ( save_job_details ) {
+        const jobDetailsPath = "/api/v0.2/jobs/" + jobId + "/";
+        const [jobDetails] = await Promise.all([
+            undici.request(new URL(jobDetailsPath, host)),
+        ]);
+
+        const { body: jobDetailsBody, statusCode: jobDetailsStatusCode } = jobDetails;
+
+        if (jobDetailsStatusCode >= 400) {
+            console.log("Error retrieving job details");
+        }
+
+        let detailsBody = await jobDetailsBody.json();
+        detailsBody.url = host + "/scheduler/job/" + jobId;
+        const fileName = "./test-job-" + jobId + ".json"
+        console.log("Write job details to file");
+        await fs.writeFile(fileName, JSON.stringify(detailsBody), err => {
+            if (err) {
+                console.error(err);
+            }});
+        await fs.stat(fileName, (error, stats) => {
+          if (error) {
+            console.log(error);
+          }
+          else {
+            console.log("Stats object for: " + fileName);
+            console.log(stats);
+          }
+        });
+
+        const artifact = new DefaultArtifactClient()
+        const {id, size} = await artifact.uploadArtifact(
+            "test-job-" + jobId,
+            [fileName],
+            "./"
+        )
+        console.log(`Created artifact with id: ${id}, bytes: ${size}, name: ${fileName}`)
+    }
 
     if ( wait_for_job ) {
         return await fetchAndParse(jobId, 0, host, fail_action_on_failure, save_result_as_artifact);

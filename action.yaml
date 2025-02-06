@@ -19,6 +19,9 @@ inputs:
   save_result_as_artifact:
     description: 'Save test results as JUNIT XML file'
     default: false
+  save_job_details:
+    description: 'Save job details as JSON file'
+    default: false
 
 runs:
   using: 'node20'
