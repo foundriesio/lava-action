@@ -21,6 +21,18 @@ const BackgroundColor = {
 
 const testResults = new Map();
 
+async function createRequest(method, url, token) {
+    const tokenString = "Token " + token;
+    const options = {
+      method: method,
+      headers: {
+        'Authorization': tokenString,
+        "content-type": "application/json"
+      },
+    };
+    return undici.request(url, options)
+}
+
 async function printResults(fail_action) {
     console.log("Printing results")
     var hasFailures = false;
@@ -40,21 +52,13 @@ async function printResults(fail_action) {
 
 async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact) {
     console.log("Saving artifacts: " + save_result_as_artifact);
-    const tokenString = "Token " + lava_token;
-    const options = {
-      method: "GET",
-      headers: {
-        'Authorization': tokenString,
-        "content-type": "application/json"
-      },
-    };
 
     if (save_result_as_artifact){
         const artifact = new DefaultArtifactClient()
         // Save results as artifact
         const jobResultsPath = "/api/v0.2/jobs/" + jobId + "/junit/";
         const [jobResults] = await Promise.all([
-            undici.request(new URL(jobResultsPath, host), options),
+            createRequest("GET", new URL(jobResultsPath, host), lava_token),
         ]);
 
         const { body: jobResultsBody, statusCode: jobResultsStatusCode } = jobResults;
@@ -90,20 +94,12 @@ async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact) {
 }
 
 async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact) {
-    const tokenString = "Token " + lava_token;
     const jobStatusPath = "/api/v0.2/jobs/" + jobId + "/";
     const jobLogPath = "/api/v0.2/jobs/" + jobId + "/logs/?start=" + logStart;
-    const options = {
-      method: "GET",
-      headers: {
-        'Authorization': tokenString,
-        "content-type": "application/json"
-      },
-    };
 
     const [jobStatusResponse, jobLogResponse] = await Promise.all([
-        undici.request(new URL(jobStatusPath, host), options),
-        undici.request(new URL(jobLogPath, host), options)
+        createRequest("GET", new URL(jobStatusPath, host), lava_token),
+        createRequest("GET", new URL(jobLogPath, host), lava_token),
     ]);
 
     const { body: jobStatusBody, statusCode: jobStatusCode } = jobStatusResponse;
@@ -245,16 +241,9 @@ async function main() {
     console.log("Job URL: ", host + "/scheduler/job/" + jobId);
     if ( save_job_details ) {
         const jobDetailsPath = "/api/v0.2/jobs/" + jobId + "/";
-        const options = {
-          method: "GET",
-          headers: {
-            'Authorization': tokenString,
-            "content-type": "application/json"
-          },
-        };
 
         const [jobDetails] = await Promise.all([
-            undici.request(new URL(jobDetailsPath, host), options),
+            createRequest("GET", new URL(jobDetailsPath, host), lava_token)
         ]);
 
         const { body: jobDetailsBody, statusCode: jobDetailsStatusCode } = jobDetails;
