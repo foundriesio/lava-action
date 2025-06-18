@@ -38,14 +38,23 @@ async function printResults(fail_action) {
     }
 }
 
-async function saveArtifacts(jobId, host, save_result_as_artifact) {
+async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact) {
     console.log("Saving artifacts: " + save_result_as_artifact);
+    const tokenString = "Token " + lava_token;
+    const options = {
+      method: "GET",
+      headers: {
+        'Authorization': tokenString,
+        "content-type": "application/json"
+      },
+    };
+
     if (save_result_as_artifact){
         const artifact = new DefaultArtifactClient()
         // Save results as artifact
         const jobResultsPath = "/api/v0.2/jobs/" + jobId + "/junit/";
         const [jobResults] = await Promise.all([
-            undici.request(new URL(jobResultsPath, host)),
+            undici.request(new URL(jobResultsPath, host), options),
         ]);
 
         const { body: jobResultsBody, statusCode: jobResultsStatusCode } = jobResults;
@@ -80,13 +89,21 @@ async function saveArtifacts(jobId, host, save_result_as_artifact) {
     }
 }
 
-async function fetchAndParse(jobId, logStart, host, fail_action_on_failure, save_result_as_artifact) {
+async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact) {
+    const tokenString = "Token " + lava_token;
     const jobStatusPath = "/api/v0.2/jobs/" + jobId + "/";
     const jobLogPath = "/api/v0.2/jobs/" + jobId + "/logs/?start=" + logStart;
+    const options = {
+      method: "GET",
+      headers: {
+        'Authorization': tokenString,
+        "content-type": "application/json"
+      },
+    };
 
     const [jobStatusResponse, jobLogResponse] = await Promise.all([
-        undici.request(new URL(jobStatusPath, host)),
-        undici.request(new URL(jobLogPath, host))
+        undici.request(new URL(jobStatusPath, host), options),
+        undici.request(new URL(jobLogPath, host), options)
     ]);
 
     const { body: jobStatusBody, statusCode: jobStatusCode } = jobStatusResponse;
@@ -94,7 +111,7 @@ async function fetchAndParse(jobId, logStart, host, fail_action_on_failure, save
 
     if (jobStatusCode >= 400) {
         console.log("Error retrieving job status");
-        return setTimeout(() => fetchAndParse(jobId, logStart, host, fail_action_on_failure, save_result_as_artifact), 5000);
+        return setTimeout(() => fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact), 5000);
     }
     if (jobLogStatusCode >= 400) {
         console.log("Error retrieving job logs");
@@ -135,7 +152,7 @@ async function fetchAndParse(jobId, logStart, host, fail_action_on_failure, save
     }
 
     if (state === "Finished") {
-        saveArtifacts(jobId, host, save_result_as_artifact);
+        saveArtifacts(jobId, host, lava_token, save_result_as_artifact);
         printResults(fail_action_on_failure);
         if (health === "Incomplete" || health === "Canceled") {
             console.log("Action failed because of job failure");
@@ -144,7 +161,7 @@ async function fetchAndParse(jobId, logStart, host, fail_action_on_failure, save
         return testResults;
     }
 
-    return setTimeout(() => fetchAndParse(jobId, logStart, host, fail_action_on_failure, save_result_as_artifact), 5000);
+    return setTimeout(() => fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact), 5000);
 }
 
 
@@ -228,8 +245,16 @@ async function main() {
     console.log("Job URL: ", host + "/scheduler/job/" + jobId);
     if ( save_job_details ) {
         const jobDetailsPath = "/api/v0.2/jobs/" + jobId + "/";
+        const options = {
+          method: "GET",
+          headers: {
+            'Authorization': tokenString,
+            "content-type": "application/json"
+          },
+        };
+
         const [jobDetails] = await Promise.all([
-            undici.request(new URL(jobDetailsPath, host)),
+            undici.request(new URL(jobDetailsPath, host), options),
         ]);
 
         const { body: jobDetailsBody, statusCode: jobDetailsStatusCode } = jobDetails;
@@ -266,7 +291,7 @@ async function main() {
     }
 
     if ( wait_for_job ) {
-        return await fetchAndParse(jobId, 0, host, fail_action_on_failure, save_result_as_artifact);
+        return await fetchAndParse(jobId, 0, host, lava_token, fail_action_on_failure, save_result_as_artifact);
     }
     return true
 }
