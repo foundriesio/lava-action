@@ -107,13 +107,13 @@ async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact, r
     }
 }
 
-async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact, result_file_name) {
-    const jobStatusPath = "/api/v0.2/jobs/" + jobId + "/";
-    const jobLogPath = "/api/v0.2/jobs/" + jobId + "/logs/?start=" + logStart;
+async function fetchAndParse(settings) {
+    const jobStatusPath = "/api/v0.2/jobs/" + settings.jobId + "/";
+    const jobLogPath = "/api/v0.2/jobs/" + settings.jobId + "/logs/?start=" + settings.logStart;
 
     const [jobStatusResponse, jobLogResponse] = await Promise.all([
-        createRequest("GET", new URL(jobStatusPath, host), lava_token),
-        createRequest("GET", new URL(jobLogPath, host), lava_token),
+        createRequest("GET", new URL(jobStatusPath, settings.host), settings.lava_token),
+        createRequest("GET", new URL(jobLogPath, settings.host), settings.lava_token),
     ]);
 
     const { body: jobStatusBody, statusCode: jobStatusCode } = jobStatusResponse;
@@ -121,7 +121,7 @@ async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_f
 
     if (jobStatusCode >= 400) {
         console.log("Error retrieving job status");
-        return setTimeout(() => fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact, result_file_name), 5000);
+        return setTimeout(() => fetchAndParse(settings), 5000);
     }
     if (jobLogStatusCode >= 400) {
         console.log("Error retrieving job logs");
@@ -152,7 +152,7 @@ async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_f
                     } else {
                         console.log(`${textFormat}${msg}${ColorReset}`);
                     }
-                    logStart += 1;
+                    settings.logStart += 1;
                 }
             }
             catch (error) {
@@ -162,16 +162,18 @@ async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_f
     }
 
     if (state === "Finished") {
-        saveArtifacts(jobId, host, lava_token, save_result_as_artifact, result_file_name);
-        printResults(fail_action_on_failure);
+        saveArtifacts(settings.jobId, settings.host, settings.lava_token, settings.save_result_as_artifact, settings.result_file_name);
+        printResults(settings.fail_action_on_failure);
         if (health === "Incomplete" || health === "Canceled") {
-            console.log("Action failed because of job failure");
-            core.setFailed(health);
+            if (settings.fail_action_on_incomplete) {
+                console.log("Action failed because of job failure");
+                core.setFailed(health);
+            }
         }
         return testResults;
     }
 
-    return setTimeout(() => fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact, result_file_name), 5000);
+    return setTimeout(() => fetchAndParse(settings), 5000);
 }
 
 
@@ -182,6 +184,7 @@ async function main() {
     let lava_url;
     let wait_for_job;
     let fail_action_on_failure;
+    let fail_action_on_incomplete;
     let save_result_as_artifact;
     let save_job_details;
     let result_file_name;
@@ -192,6 +195,7 @@ async function main() {
         lava_url = core.getInput("lava_url", {required: true});
         wait_for_job = core.getBooleanInput("wait_for_job", {required: true});
         fail_action_on_failure = core.getBooleanInput("fail_action_on_failure", {required: true});
+        fail_action_on_incomplete = core.getBooleanInput("fail_action_on_incomplete", {required: true});
         save_result_as_artifact  = core.getBooleanInput("save_result_as_artifact", {required: true});
         save_job_details  = core.getBooleanInput("save_job_details", {required: true});
         result_file_name = core.getInput("result_file_name", {required: false});
@@ -297,9 +301,19 @@ async function main() {
         )
         console.log(`Created artifact with id: ${id}, bytes: ${size}, name: ${fileName}`)
     }
+    let settings = {
+        jobId: jobId,
+        logStart: 0,
+        host: host,
+        lava_token: lava_token,
+        fail_action_on_failure: fail_action_on_failure,
+        fail_action_on_incomplete: fail_action_on_incomplete,
+        save_result_as_artifact: save_result_as_artifact,
+        result_file_name: result_file_name
+    }
 
     if ( wait_for_job ) {
-        return await fetchAndParse(jobId, 0, host, lava_token, fail_action_on_failure, save_result_as_artifact, result_file_name);
+        return await fetchAndParse(settings);
     }
     return true
 }
