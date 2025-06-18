@@ -22,6 +22,10 @@ inputs:
   save_job_details:
     description: 'Save job details as JSON file'
     default: false
+  result_file_name:
+    description: 'File name in which the test results will be stored. Defaults to test-results-<jobID>.
+      If the file with the same name is already stored as workflow artifact it will be overwritten.
+      This option is useful for keeping clean results in case of re-running test jobs.'
 
 runs:
   using: 'node20'

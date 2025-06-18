@@ -50,8 +50,11 @@ async function printResults(fail_action) {
     }
 }
 
-async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact) {
+async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact, result_file_name) {
     console.log("Saving artifacts: " + save_result_as_artifact);
+    if (result_file_name) {
+        console.log("Saving to file: " + result_file_name + ".xml")
+    }
 
     if (save_result_as_artifact){
         const artifact = new DefaultArtifactClient()
@@ -66,7 +69,11 @@ async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact) {
         if (jobResultsStatusCode >= 400) {
             console.log("Error retrieving job results");
         }
-        const fileName = "./test-results-" + jobId + ".xml"
+        let resultsName = "test-results-" + jobId
+        if (result_file_name) {
+            resultsName = result_file_name
+        }
+        const fileName = "./" + resultsName + ".xml"
         console.log("Writing to: " + fileName);
         const resultsBody = await jobResultsBody.text();
         await fs.writeFile(fileName, resultsBody, err => {
@@ -83,8 +90,15 @@ async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact) {
           }
         });
 
+        try {
+            // delete previous_result before saving new file
+            let previous_result = await artifact.deleteArtifact(resultsName)
+        }
+        catch (error) {
+            console.log(error)
+        }
         const {id, size} = await artifact.uploadArtifact(
-            "test-results-" + jobId,
+            resultsName,
             [fileName],
             "./"
         )
@@ -93,7 +107,7 @@ async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact) {
     }
 }
 
-async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact) {
+async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact, result_file_name) {
     const jobStatusPath = "/api/v0.2/jobs/" + jobId + "/";
     const jobLogPath = "/api/v0.2/jobs/" + jobId + "/logs/?start=" + logStart;
 
@@ -107,7 +121,7 @@ async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_f
 
     if (jobStatusCode >= 400) {
         console.log("Error retrieving job status");
-        return setTimeout(() => fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact), 5000);
+        return setTimeout(() => fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact, result_file_name), 5000);
     }
     if (jobLogStatusCode >= 400) {
         console.log("Error retrieving job logs");
@@ -148,7 +162,7 @@ async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_f
     }
 
     if (state === "Finished") {
-        saveArtifacts(jobId, host, lava_token, save_result_as_artifact);
+        saveArtifacts(jobId, host, lava_token, save_result_as_artifact, result_file_name);
         printResults(fail_action_on_failure);
         if (health === "Incomplete" || health === "Canceled") {
             console.log("Action failed because of job failure");
@@ -157,7 +171,7 @@ async function fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_f
         return testResults;
     }
 
-    return setTimeout(() => fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact), 5000);
+    return setTimeout(() => fetchAndParse(jobId, logStart, host, lava_token, fail_action_on_failure, save_result_as_artifact, result_file_name), 5000);
 }
 
 
@@ -170,6 +184,7 @@ async function main() {
     let fail_action_on_failure;
     let save_result_as_artifact;
     let save_job_details;
+    let result_file_name;
 
     try {
         job_definition_path = core.getInput("job_definition", {required: true});
@@ -179,10 +194,14 @@ async function main() {
         fail_action_on_failure = core.getBooleanInput("fail_action_on_failure", {required: true});
         save_result_as_artifact  = core.getBooleanInput("save_result_as_artifact", {required: true});
         save_job_details  = core.getBooleanInput("save_job_details", {required: true});
+        result_file_name = core.getInput("result_file_name", {required: false});
         console.log("Wait for job: " + wait_for_job);
         console.log("Fail on failure: " + fail_action_on_failure);
         console.log("Save artifact: " + save_result_as_artifact);
         console.log("Save job details: " + save_job_details);
+        if (result_file_name) {
+            console.log("Result file name: " + result_file_name);
+        }
     } catch (ex) {
         console.log("Error reading input variables");
         core.setFailed(ex.message);
@@ -280,7 +299,7 @@ async function main() {
     }
 
     if ( wait_for_job ) {
-        return await fetchAndParse(jobId, 0, host, lava_token, fail_action_on_failure, save_result_as_artifact);
+        return await fetchAndParse(jobId, 0, host, lava_token, fail_action_on_failure, save_result_as_artifact, result_file_name);
     }
     return true
 }
