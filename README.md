@@ -24,10 +24,22 @@ Wait for job completion and stream logs'
 
 Marks action failed in any test result is `fail`. Requires `wait_for_job` set to `true`
 
-## 'save_result_as_artifact'
+## `save_result_as_artifact`
 
 Saves JUNIT file with test results. The file name is `test-resutls-<lava job ID>.xml`.
 The file is saved to the top directory of the workflow artifacts.
+
+## `save_job_details`
+
+Saves LAVA job details retrieved from API as JSON file. Note that the file contains
+full rendered job definition. It may contain sensitive data (like passwords).
+Defaults to `false`
+
+## `result_file_name`
+
+The file name of the results pulled from LAVA API after the job is completed.
+It can be used to overwrite the results when re-running the action in github workflow.
+Defaults to `test-results-<jobID>`
 
 ## Example usage
 
