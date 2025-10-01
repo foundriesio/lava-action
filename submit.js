@@ -5,18 +5,18 @@ const github = require('@actions/github');
 const {DefaultArtifactClient} = require('@actions/artifact')
 const undici = require('undici');
 const YAML = require('yaml')
-const ColorReset = "\x1b[0m";
+const ColorReset = "\033[0m";
 
 const BackgroundColor = {
-    info: "\x1b[46m",
-    debug: "\x1b[43m",
-    results: "\x1b[44m",
-    target: "\x1b[42m",
-    error: "\x1b[41m",
-    exception: "\x1b[45m",
-    input: "\x1b[40m",
-    feedback: "\x1b[102m",
-    warning: "\x1b[103m",
+    info: "\033[38;5;0;48;5;195m",
+    debug: "\033[38;5;0;48;5;224m",
+    results: "\033[38;5;195;48;5;63m",
+    target: "\033[38;5;0;48;5;112m",
+    error: "\033[38;5;0;48;5;196m",
+    exception: "\033[38;5;0;48;5;210m",
+    input: "\033[38;5;231;48;5;237m",
+    feedback: "\033[38;5;0;48;5;118m",
+    warning: "\033[38;5;0;48;5;220m",
 }
 
 const testResults = new Map();
