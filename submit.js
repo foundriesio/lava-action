@@ -188,6 +188,7 @@ async function main() {
     let save_result_as_artifact;
     let save_job_details;
     let result_file_name;
+    let test_job_file_name_prefix;
 
     try {
         job_definition_path = core.getInput("job_definition", {required: true});
@@ -199,12 +200,16 @@ async function main() {
         save_result_as_artifact  = core.getBooleanInput("save_result_as_artifact", {required: true});
         save_job_details  = core.getBooleanInput("save_job_details", {required: true});
         result_file_name = core.getInput("result_file_name", {required: false});
+        test_job_file_name_prefix = core.getInput("test_job_file_name_prefix", {required: false});
         console.log("Wait for job: " + wait_for_job);
         console.log("Fail on failure: " + fail_action_on_failure);
         console.log("Save artifact: " + save_result_as_artifact);
         console.log("Save job details: " + save_job_details);
         if (result_file_name) {
             console.log("Result file name: " + result_file_name);
+        }
+        if (test_job_file_name_prefix) {
+            console.log("Job details filename prefix: " + test_job_file_name_prefix);
         }
     } catch (ex) {
         console.log("Error reading input variables");
@@ -277,7 +282,7 @@ async function main() {
 
         let detailsBody = await jobDetailsBody.json();
         detailsBody.url = host + "/scheduler/job/" + jobId;
-        const fileName = "./test-job-" + jobId + ".json"
+        const fileName = "./" + test_job_file_name_prefix + "test-job-" + jobId + ".json"
         console.log("Write job details to file");
         await fs.writeFile(fileName, JSON.stringify(detailsBody), err => {
             if (err) {
@@ -295,7 +300,7 @@ async function main() {
 
         const artifact = new DefaultArtifactClient()
         const {id, size} = await artifact.uploadArtifact(
-            "test-job-" + jobId,
+            test_job_file_name_prefix + "test-job-" + jobId,
             [fileName],
             "./"
         )

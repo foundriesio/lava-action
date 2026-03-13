@@ -45,6 +45,13 @@ The file name of the results pulled from LAVA API after the job is completed.
 It can be used to overwrite the results when re-running the action in github workflow.
 Defaults to `test-results-<jobID>`
 
+## `test_job_file_name_prefix`
+
+String that can be prepended to usual file name that contains job detail.
+Default is empty string and the default name of the file is `test-job-<jobID>.json`
+Prefix is added directly before the default name, so it is advised it ends with `-`
+
+
 ## Example usage
 
     uses: foundries/lava-action@v3

@@ -29,6 +29,8 @@ inputs:
     description: 'File name in which the test results will be stored. Defaults to test-results-<jobID>.
       If the file with the same name is already stored as workflow artifact it will be overwritten.
       This option is useful for keeping clean results in case of re-running test jobs.'
+  test_job_file_name_prefix:
+    description: 'Prefix for the job details filename. It will prepend the test-job-<job ID>.json'
 
 runs:
   using: 'node20'
