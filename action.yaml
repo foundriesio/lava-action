@@ -33,5 +33,5 @@ inputs:
     description: 'Prefix for the job details filename. It will prepend the test-job-<job ID>.json'
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'submit.js'
