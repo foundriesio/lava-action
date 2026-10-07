@@ -54,6 +54,7 @@ Prefix is added directly before the default name, so it is advised it ends with 
 ## `poll_interval`
 
 Interval in seconds between polls for job status and logs when `wait_for_job` is `true`.
+Logs are only fetched once the job leaves the `Submitted`/`Scheduled` state.
 Defaults to `60`
 
 

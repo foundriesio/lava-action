@@ -125,13 +125,8 @@ async function fetchAndParse(settings) {
     const jobStatusPath = "/api/v0.2/jobs/" + settings.jobId + "/";
     const jobLogPath = "/api/v0.2/jobs/" + settings.jobId + "/logs/?start=" + settings.logStart;
 
-    const [jobStatusResponse, jobLogResponse] = await Promise.all([
-        createRequest("GET", new URL(jobStatusPath, settings.host), settings.lava_token),
-        createRequest("GET", new URL(jobLogPath, settings.host), settings.lava_token),
-    ]);
-
+    const jobStatusResponse = await createRequest("GET", new URL(jobStatusPath, settings.host), settings.lava_token);
     const { body: jobStatusBody, statusCode: jobStatusCode } = jobStatusResponse;
-    const { body: jobLogBody, statusCode: jobLogStatusCode } = jobLogResponse;
 
     if (jobStatusCode >= 400) {
         console.log("Error retrieving job status");
@@ -143,9 +138,13 @@ async function fetchAndParse(settings) {
     const { health } = jobStatus;
 
     if (state === "Submitted" || state === "Scheduled") {
-        // Return if the job is in the queue
+        // Don't fetch logs until the job leaves the queue
+        console.log("Waiting for job to start");
         return setTimeout(() => fetchAndParse(settings), pollInterval);
     }
+
+    const jobLogResponse = await createRequest("GET", new URL(jobLogPath, settings.host), settings.lava_token);
+    const { body: jobLogBody, statusCode: jobLogStatusCode } = jobLogResponse;
 
     if (jobLogStatusCode >= 400) {
         console.log("Error retrieving job logs");
