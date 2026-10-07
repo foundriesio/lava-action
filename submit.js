@@ -130,6 +130,7 @@ async function fetchAndParse(settings) {
 
     if (jobStatusCode >= 400) {
         console.log("Error retrieving job status");
+        await jobStatusBody.dump();
         return setTimeout(() => fetchAndParse(settings), pollInterval);
     }
 
