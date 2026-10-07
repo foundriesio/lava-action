@@ -31,6 +31,9 @@ inputs:
       This option is useful for keeping clean results in case of re-running test jobs.'
   test_job_file_name_prefix:
     description: 'Prefix for the job details filename. It will prepend the test-job-<job ID>.json'
+  poll_interval:
+    description: 'Interval in seconds between polls for job status and logs. Requires wait_for_job set to "true"'
+    default: 60
 
 runs:
   using: 'node24'

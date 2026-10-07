@@ -51,6 +51,11 @@ String that can be prepended to usual file name that contains job detail.
 Default is empty string and the default name of the file is `test-job-<jobID>.json`
 Prefix is added directly before the default name, so it is advised it ends with `-`
 
+## `poll_interval`
+
+Interval in seconds between polls for job status and logs when `wait_for_job` is `true`.
+Defaults to `60`
+
 
 ## Example usage
 
