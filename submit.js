@@ -121,6 +121,7 @@ async function saveArtifacts(jobId, host, lava_token, save_result_as_artifact, r
 }
 
 async function fetchAndParse(settings) {
+    const pollInterval = settings.poll_interval * 1000;
     const jobStatusPath = "/api/v0.2/jobs/" + settings.jobId + "/";
     const jobLogPath = "/api/v0.2/jobs/" + settings.jobId + "/logs/?start=" + settings.logStart;
 
@@ -134,7 +135,7 @@ async function fetchAndParse(settings) {
 
     if (jobStatusCode >= 400) {
         console.log("Error retrieving job status");
-        return setTimeout(() => fetchAndParse(settings), 5000);
+        return setTimeout(() => fetchAndParse(settings), pollInterval);
     }
 
     const jobStatus = await jobStatusBody.json();
@@ -143,7 +144,7 @@ async function fetchAndParse(settings) {
 
     if (state === "Submitted" || state === "Scheduled") {
         // Return if the job is in the queue
-        return setTimeout(() => fetchAndParse(settings), 5000);
+        return setTimeout(() => fetchAndParse(settings), pollInterval);
     }
 
     if (jobLogStatusCode >= 400) {
@@ -188,7 +189,7 @@ async function fetchAndParse(settings) {
         return testResults;
     }
 
-    return setTimeout(() => fetchAndParse(settings), 5000);
+    return setTimeout(() => fetchAndParse(settings), pollInterval);
 }
 
 
@@ -204,6 +205,7 @@ async function main() {
     let save_job_details;
     let result_file_name;
     let test_job_file_name_prefix;
+    let poll_interval;
 
     try {
         job_definition_path = core.getInput("job_definition", {required: true});
@@ -216,10 +218,15 @@ async function main() {
         save_job_details  = core.getBooleanInput("save_job_details", {required: true});
         result_file_name = core.getInput("result_file_name", {required: false});
         test_job_file_name_prefix = core.getInput("test_job_file_name_prefix", {required: false});
+        poll_interval = Number(core.getInput("poll_interval", {required: false}) || 60);
+        if (!Number.isFinite(poll_interval) || poll_interval <= 0) {
+            throw new Error("poll_interval must be a positive number of seconds");
+        }
         console.log("Wait for job: " + wait_for_job);
         console.log("Fail on failure: " + fail_action_on_failure);
         console.log("Save artifact: " + save_result_as_artifact);
         console.log("Save job details: " + save_job_details);
+        console.log("Poll interval: " + poll_interval + "s");
         if (result_file_name) {
             console.log("Result file name: " + result_file_name);
         }
@@ -330,7 +337,8 @@ async function main() {
         fail_action_on_failure: fail_action_on_failure,
         fail_action_on_incomplete: fail_action_on_incomplete,
         save_result_as_artifact: save_result_as_artifact,
-        result_file_name: result_file_name
+        result_file_name: result_file_name,
+        poll_interval: poll_interval
     }
 
     if ( wait_for_job ) {
