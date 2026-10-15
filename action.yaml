@@ -38,3 +38,4 @@ inputs:
 runs:
   using: 'node24'
   main: 'submit.js'
+  post: 'cancel.js'

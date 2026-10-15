@@ -69,4 +69,10 @@ Defaults to `60`
       wait_for_job: 'true'
       fail_action_on_failure: 'true'
 
-Note! It is advised to set `timeout-minutes` to avoid the job runninng indefinitely.
+Note! It is advised to set `timeout-minutes` to avoid the job running indefinitely.
+
+When the workflow is cancelled, or `timeout-minutes` runs out, the action's post
+step cancels the LAVA job it was waiting for. A job submitted with `wait_for_job`
+set to `false` is left running. This is best effort: a runner that dies outright,
+or a second click on cancel, never reaches the post step. A `timeouts` block in
+the job definition is the only limit LAVA itself enforces.
