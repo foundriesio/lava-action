@@ -33,12 +33,16 @@ const BackgroundColor = {
 
 const testResults = new Map();
 
+// undici.request() doesn't send a User-Agent by default
+const UserAgent = "lava-action";
+
 async function createRequest(method, url, token) {
     const tokenString = "Token " + token;
     const options = {
       method: method,
       headers: {
         'Authorization': tokenString,
+        'User-Agent': UserAgent,
         "content-type": "application/json"
       },
     };
@@ -258,6 +262,7 @@ async function main() {
           method: "POST",
           headers: {
             'Authorization': tokenString,
+            'User-Agent': UserAgent,
             "content-type": "application/json"
           },
           body: JSON.stringify({
